@@ -1,5 +1,6 @@
 import random
 from StringIO import StringIO
+from time import time
 
 MAX_SEQ_SIZE = 25
 SAMPLE_SIZE = 500
@@ -51,16 +52,24 @@ def generate_set_and_save(filename, set_size):
     modes = ['pos', 'neg']
     lines = []
     for _ in range(set_size):
-        lines.append(generate_line(random.choice(modes)))
+        mode = random.choice(modes)
+        lines.append(generate_line(mode) + ' ' + mode)
     # save in file
     write_examples_to_file(filename, lines)
 
 
 if __name__ == '__main__':
+    t1 = time()
+
     # generate examples
     generate_sample_and_save('pos', 'pos_examples')
     generate_sample_and_save('neg', 'neg_examples')
 
+    t2 = time()
+    print 'time for examples:', t2 - t1
+
     # generate sets
     generate_set_and_save('train_set', TRAIN_SIZE)
     generate_set_and_save('test_set', TEST_SIZE)
+
+    print 'time for sets', time() - t2
