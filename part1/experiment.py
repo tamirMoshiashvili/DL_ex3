@@ -50,8 +50,8 @@ class Net(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(Net, self).__init__()
 
-        self._hidden_size - hidden_size
-        self._lr = 0.005
+        self.hidden_size = hidden_size
+        self.lr = 0.005
         self.iter_number = 10
 
         self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
@@ -81,7 +81,7 @@ class Net(nn.Module):
 
             for inputs, label in train_data:
                 inputs, label = Variable(inputs), Variable(label)
-                hidden = self.initHidden()
+                hidden = self.init_hidden()
 
                 optimizer.zero_grad()
 
@@ -100,7 +100,7 @@ class Net(nn.Module):
             print str(epoch) + ' - loss: ' + str(total_loss / data_size) + ', time: ' + str(
                 time() - curr_t) + ', accuracy: ' + str(good / (good + bad))
 
-            print 'test res:', self.predict_and_check_accuracy(test_data, criterion)
+            print '\ttest res:', self.predict_and_check_accuracy(test_data, criterion)
 
     def predict_and_check_accuracy(self, data_set, criterion):
         """
@@ -115,7 +115,7 @@ class Net(nn.Module):
         for inputs, label in data_set:
             # predict
             inputs, label = Variable(inputs), Variable(label)
-            hidden = self.initHidden()
+            hidden = self.init_hidden()
 
             for i in range(inputs.size()[0]):
                 outputs, hidden = self(inputs[i], hidden)
@@ -128,7 +128,7 @@ class Net(nn.Module):
             good += (predicted == label.data).sum()
 
         # loss, acc
-        return str(total_loss / data_size) + ',' + str(good / (good + bad)) + '\n'
+        return 'loss: ' + str(total_loss / data_size) + ', acc: ' + str(good / (good + bad))
 
 
 def category_from_output(output):
