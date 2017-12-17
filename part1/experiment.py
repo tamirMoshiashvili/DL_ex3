@@ -1,38 +1,94 @@
 from time import time
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.autograd import Variable
+import dynet as dy
+import numpy as np
 
 VOCAB = map(str, range(1, 10)) + ['a', 'b', 'c', 'd']
 LABELS = ['pos', 'neg']
-
-n_letters = len(VOCAB)
-n_labels = len(LABELS)
-n_hidden = 20
-
-w2i = {w: i for i, w in enumerate(VOCAB)}  # map letter to index
-l2i = {l: i for i, l in enumerate(LABELS)}  # map label to index
+W2I = {w: i for i, w in enumerate(VOCAB)}  # map letter to index
+L2I = {l: i for i, l in enumerate(LABELS)}  # map label to index
 
 
-def letter_to_tensor(letter):
-    """ turn a letter into a <1 x n_letters> Tensor """
-    tensor = torch.zeros(1, n_letters)
-    tensor[0][w2i[letter]] = 1
-    return tensor
+class DynetModel(object):
+    def __init__(self, w2i, l2i, emb_dim=40, rnn_dim=30, hid_dim=20):
+        self.w2i = w2i
+        self.l2i = l2i
+        self.i2l = {i: l for l, i in l2i.iteritems()}
+        vocab_size = len(w2i)
+        out_dim = len(l2i)
 
+        self.model = dy.Model()
+        self.embed = self.model.add_lookup_parameters((vocab_size, emb_dim))
+        self.lstm = dy.LSTMBuilder(1, emb_dim, rnn_dim, self.model)
 
-def line_to_tensor(line):
-    """
-    Turn a line into a <line_length x 1 x n_letters>,
-        or an array of one-hot letter vectors
-    """
-    tensor = torch.zeros(len(line), 1, n_letters)
-    for i, letter in enumerate(line):
-        tensor[i][0][w2i[letter]] = 1
-    return tensor
+        # linear1
+        self.pW1 = self.model.add_parameters((hid_dim, rnn_dim))
+        self.pb1 = self.model.add_parameters(hid_dim)
+
+        # linear2
+        self.pW2 = self.model.add_parameters((out_dim, hid_dim))
+        self.pb2 = self.model.add_parameters(out_dim)
+
+    def __call__(self, seq):
+        dy.renew_cg()
+
+        # feed each item of the sequence
+        state = self.lstm.initial_state()
+        for c in seq:
+            embed = dy.lookup(self.embed, self.w2i[c])
+            state = state.add_input(embed)
+
+        w1, b1 = dy.parameter(self.pW1), dy.parameter(self.pb1)
+        w2, b2 = dy.parameter(self.pW2), dy.parameter(self.pb2)
+
+        out = state.output()
+        out = w1 * out + b1  # linear 1
+        out = dy.tanh(out)  # non-linear
+        out = w2 * out + b2  # linear 2
+        return dy.softmax(out)
+
+    def train(self, train, test, iter_num=1):
+        train = make_data_set(train)
+        test = make_data_set(test)
+        train_size = len(train)
+
+        trainer = dy.AdamTrainer(self.model)
+
+        for epoch in range(iter_num):
+            np.random.shuffle(train)
+            total_loss, good = 0.0, 0.0
+            t = time()
+
+            for seq, label in train:
+                output = self(seq)  # probabilities
+                loss = -dy.log(dy.pick(output, self.l2i[label]))
+                total_loss += loss.value()
+
+                pred_label = self.i2l[np.argmax(output.npvalue())]  # as string
+                if pred_label == label:
+                    good += 1
+
+                loss.backward()  # compute grads
+                trainer.update()  # update params
+
+            print epoch, 'loss:', (total_loss / train_size), 'acc:', (good / train_size), 'time:', time() - t
+            print self.test(test)
+
+    def test(self, test):
+        total_loss, good = 0.0, 0.0
+        t = time()
+
+        for seq, label in test:
+            output = self(seq)
+            loss = -dy.log(dy.pick(output, self.l2i[label]))
+            total_loss += loss.value()
+
+            pred_label = self.i2l[np.argmax(output.npvalue())]
+            if pred_label == label:
+                good += 1
+
+        return '\tloss: ' + str(total_loss / len(test)) + ', acc: ' + str(good / len(test)) + ', time: ' + str(
+            time() - t)
 
 
 def make_data_set(data):
@@ -41,103 +97,12 @@ def make_data_set(data):
     :return list of tuples, each tuple is (word, label) where each is a tensor.
     """
     for i, line in enumerate(data):
-        word, label = line.split()
-        data[i] = (line_to_tensor(word), torch.LongTensor([l2i[label]]))
+        seq, label = line.split()
+        data[i] = (seq, label)
     return data
 
 
-class Net(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(Net, self).__init__()
-
-        self.hidden_size = hidden_size
-        self.lr = 0.005
-        self.iter_number = 10
-
-        self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
-        self.i2o = nn.Linear(input_size + hidden_size, output_size)
-
-    def forward(self, inputs, hidden):
-        combined = torch.cat((inputs, hidden), 1)
-        hidden = self.i2h(combined)
-        output = self.i2o(combined)
-        return output, hidden
-
-    def init_hidden(self):
-        return Variable(torch.zeros(1, self.hidden_size))
-
-    def train(self, train_data, test_data):
-        train_data = make_data_set(train_data)
-        test_data = make_data_set(test_data)
-        data_size = len(train_data)
-
-        criterion = nn.CrossEntropyLoss()  # include the softmax
-        optimizer = optim.Adam(self.parameters(), lr=self.lr)
-
-        for epoch in range(self.iter_number):
-            total_loss = 0.0
-            good, bad = 0.0, 0.0
-            curr_t = time()
-
-            for inputs, label in train_data:
-                inputs, label = Variable(inputs), Variable(label)
-                hidden = self.init_hidden()
-
-                optimizer.zero_grad()
-
-                for i in range(inputs.size()[0]):
-                    outputs, hidden = self(inputs[i], hidden)
-                loss = criterion(outputs, label)
-                loss.backward()
-                optimizer.step()
-                total_loss += loss.data[0]
-
-                # extract the predicted label and update good and bad
-                _, predicted = torch.max(outputs.data, 1)
-                bad += (predicted != label.data).sum()
-                good += (predicted == label.data).sum()
-
-            print str(epoch) + ' - loss: ' + str(total_loss / data_size) + ', time: ' + str(
-                time() - curr_t) + ', accuracy: ' + str(good / (good + bad))
-
-            print '\ttest res:', self.predict_and_check_accuracy(test_data, criterion)
-
-    def predict_and_check_accuracy(self, data_set, criterion):
-        """
-        :param data_set: list of windows, each is a list of 5 words.
-        :param criterion: loss function.
-        :return: string that represent performance, which is 'loss,accuracy'
-        """
-        good, bad = 0.0, 0.0
-        total_loss = 0.0
-
-        data_size = len(data_set)
-        for inputs, label in data_set:
-            # predict
-            inputs, label = Variable(inputs), Variable(label)
-            hidden = self.init_hidden()
-
-            for i in range(inputs.size()[0]):
-                outputs, hidden = self(inputs[i], hidden)
-            total_loss += criterion(outputs, label).data[0]
-
-            # extract the predicted label and update good and bad
-            predicted = category_from_output(outputs)  # todo delete
-            _, predicted = torch.max(outputs.data, 1)
-            bad += (predicted != label.data).sum()
-            good += (predicted == label.data).sum()
-
-        # loss, acc
-        return 'loss: ' + str(total_loss / data_size) + ', acc: ' + str(good / (good + bad))
-
-
-def category_from_output(output):
-    top_n, top_i = output.data.topk(1)  # Tensor out of Variable with .data
-    category_i = top_i[0][0]
-    return LABELS[category_i], category_i
-
-
-def read_data_file(filename):
+def read_file(filename):
     f = open(filename, 'r')
     lines = f.read().splitlines()
     f.close()
@@ -147,12 +112,10 @@ def read_data_file(filename):
 if __name__ == '__main__':
     print 'start'
 
-    t = time()
+    TRAIN = read_file('train_set')
+    TEST = read_file('test_set')
+    # TRAIN = read_file('sample')
+    # TEST = read_file('sample')
 
-    train = read_data_file('train_set')
-    test = read_data_file('test_set')
-
-    rnn = Net(n_letters, n_hidden, n_labels)
-    rnn.train(train, test)
-
-    print 'time:', time() - t
+    net = DynetModel(W2I, L2I)
+    net.train(TRAIN, TEST)
