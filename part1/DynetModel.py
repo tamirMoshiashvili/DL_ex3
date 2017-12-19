@@ -4,7 +4,7 @@ import numpy as np
 
 
 class DynetModel(object):
-    def __init__(self, w2i, l2i, emb_dim=40, rnn_dim=30, hid_dim=20):
+    def __init__(self, w2i, l2i, emb_dim=32, rnn_dim=32, hid_dim=16, layers=1):
         self.w2i = w2i
         self.l2i = l2i
         self.i2l = {i: l for l, i in l2i.iteritems()}
@@ -13,7 +13,7 @@ class DynetModel(object):
 
         self.model = dy.Model()
         self.embed = self.model.add_lookup_parameters((vocab_size, emb_dim))
-        self.lstm = dy.LSTMBuilder(1, emb_dim, rnn_dim, self.model)
+        self.lstm = dy.VanillaLSTMBuilder(layers, emb_dim, rnn_dim, self.model)
 
         # linear1
         self.pW1 = self.model.add_parameters((hid_dim, rnn_dim))

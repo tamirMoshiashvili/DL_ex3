@@ -1,6 +1,10 @@
 import random
 from time import time
 
+from StringIO import StringIO
+
+import numpy as np
+
 
 def gen_even_seq(is_even, max_seq_size):
     seq = 'a' * (2 * random.randint(10, max_seq_size))
@@ -31,6 +35,72 @@ def gen_palindrome_seq(is_palindrome, max_seq_size):
         return ''.join(seq)
 
 
+def gen_pow_2(is_pow_2, max_seq_size):
+    seq = StringIO()
+    ops = ['a', 'b']
+
+    for _ in range(random.randint(1, 10)):
+        c = random.choice(ops)
+        size = np.power(2, random.randint(4, max_seq_size))
+        seq.write(c * size)
+        if is_pow_2 == '0':
+            seq.write(c * random.randint(1, int(size / 2)))
+
+    return seq.getvalue()
+
+
+def gen_an_bn(is_true, max_seq_size):
+    seq = StringIO()
+    size = random.randint(int(max_seq_size / 2), max_seq_size)
+    seq.write('a' * size)
+
+    if is_true == '0':
+        chose = random.choice([True, False])
+        if chose:
+            seq.write('a' * random.randint(1, size))
+    seq.write('b' * size)
+
+    if is_true == '0' and (not chose):
+        seq.write('b' * random.randint(1, size))
+    return seq.getvalue()
+
+
+def gen_divide_by_3(is_true, max_seq_size):
+    ops = [str(i) for i in range(10)]
+    num = StringIO()
+
+    num.write(random.choice(ops[1:]))
+    for _ in range(random.randint(1, max_seq_size)):
+        num.write(random.choice(ops))
+    if is_true == '0':
+        while int(num.getvalue()) % 3 == 0:
+            num.write(random.choice(ops))
+    else:
+        while int(num.getvalue()) % 3 != 0:
+            num.write(random.choice(ops))
+
+    return num.getvalue()
+
+
+def gen_credit_card_num(is_true, max_addition_size):
+    ops = [str(i) for i in range(10)]
+    seq = StringIO()
+
+    for _ in range(3):
+        for _2 in range(4):
+            seq.write(random.choice(ops))
+        if is_true == '0':
+            for _3 in range(random.randint(0, max_addition_size)):
+                seq.write(random.choice(ops))
+        seq.write('-')
+    for _2 in range(4):
+        seq.write(random.choice(ops))
+    if is_true == '0':
+        for _3 in range(random.randint(1, max_addition_size)):
+            seq.write(random.choice(ops))
+    return seq.getvalue()
+
+
 def gen_file(filename, gen_func, iter_num=1500, max_seq_size=15):
     examples = []
     ops = ['0', '1']
@@ -47,7 +117,9 @@ if __name__ == '__main__':
     print 'start'
     t = time()
 
-    gen_file('data/train_pali', gen_palindrome_seq, iter_num=500, max_seq_size=25)
-    gen_file('data/dev_pali', gen_palindrome_seq, iter_num=500, max_seq_size=35)
+    # gen_file('data/train_3', gen_divide_by_3, iter_num=3000, max_seq_size=30)
+    # gen_file('data/dev_3', gen_divide_by_3, iter_num=1000, max_seq_size=33)
+
+    print gen_credit_card_num('0', 3)
 
     print time() - t
