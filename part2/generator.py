@@ -117,9 +117,7 @@ if __name__ == '__main__':
     print 'start'
     t = time()
 
-    # gen_file('data/train_3', gen_divide_by_3, iter_num=3000, max_seq_size=30)
-    # gen_file('data/dev_3', gen_divide_by_3, iter_num=1000, max_seq_size=33)
-
-    print gen_credit_card_num('0', 3)
+    gen_file('data/train_credit_card', gen_credit_card_num, iter_num=3000, max_seq_size=3)
+    gen_file('data/dev_credit_card', gen_credit_card_num, iter_num=1000, max_seq_size=3)
 
     print time() - t

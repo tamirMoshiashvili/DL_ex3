@@ -73,9 +73,23 @@ def div3_seq():
     dynet_model.train(train, dev, iter_num=20)
 
 
+def credit_card_seq():
+    train = read_file('data/train_credit_card')
+    dev = read_file('data/dev_credit_card')
+
+    vocab = [str(i) for i in range(10)] + ['-']
+    labels = ['0', '1']
+    w2i = {w: i for i, w in enumerate(vocab)}
+    l2i = {l: i for i, l in enumerate(labels)}
+
+    dynet_model = DynetModel(w2i, l2i, layers=4)
+    dynet_model.train(train, dev, iter_num=20)
+
+
 if __name__ == '__main__':
     print 'start'
 
-    mode = 'div3'
-    seqs = {'even': even_seq, 'pali': palindrome_seq, 'pow': pow_2_seq, 'anbn': anbn_seq, 'div3': div3_seq}
+    mode = 'credit_card'
+    seqs = {'even': even_seq, 'pali': palindrome_seq, 'pow': pow_2_seq, 'anbn': anbn_seq, 'div3': div3_seq,
+            'credit_card': credit_card_seq}
     seqs[mode]()
