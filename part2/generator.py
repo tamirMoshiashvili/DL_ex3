@@ -101,6 +101,22 @@ def gen_credit_card_num(is_true, max_addition_size):
     return seq.getvalue()
 
 
+def gen_divide_3_bin(is_true, max_seq_size):
+    ops = ['0', '1']
+    num = StringIO()
+
+    for _ in range(random.randint(1, max_seq_size)):
+        num.write(random.choice(ops))
+    if is_true == '0':
+        while int(num.getvalue(), 2) % 3 == 0:
+            num.write(random.choice(ops))
+    else:
+        while int(num.getvalue(), 2) % 3 != 0:
+            num.write(random.choice(ops))
+
+    return num.getvalue()
+
+
 def gen_file(filename, gen_func, iter_num=1500, max_seq_size=15):
     examples = []
     ops = ['0', '1']
@@ -117,7 +133,7 @@ if __name__ == '__main__':
     print 'start'
     t = time()
 
-    gen_file('data/train_credit_card', gen_credit_card_num, iter_num=3000, max_seq_size=3)
-    gen_file('data/dev_credit_card', gen_credit_card_num, iter_num=1000, max_seq_size=3)
+    gen_file('data/train_div3_bin', gen_divide_3_bin, iter_num=3000, max_seq_size=15)
+    gen_file('data/dev_div3_bin', gen_divide_3_bin, iter_num=1000, max_seq_size=15)
 
     print time() - t
