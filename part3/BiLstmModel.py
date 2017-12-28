@@ -86,7 +86,7 @@ class BiLstmModel(object):
 
     def train_on(self, train, dev, to_save=False, model_name=None):
         dev_res_file = open('dev_results.txt', 'w')
-        dev_res_file.write('loss,accuracy\n')
+        dev_res_file.write('accuracy\n')
 
         trainer = dy.AdamTrainer(self.model)
 
@@ -118,15 +118,15 @@ class BiLstmModel(object):
                 trainer.update()
 
                 if i % 500 == 499:  # check dev accuracy every 500 sentences
-                    dev_loss, dev_acc = self.check_on_dev(dev)
-                    dev_res_file.write(str(i + 1) + ': ' + str(dev_loss) + ', ' + str(dev_acc) + '\n')
+                    dev_acc = self.check_on_dev(dev, i)
+                    dev_res_file.write(str(dev_acc) + '\n')
 
             print epoch, 'loss:', (total_loss / train_size), \
                 'acc:', (good / (good + bad)), \
-                'time:', time() - t
+                'time:', time() - t, '\n'
         dev_res_file.close()
 
-    def check_on_dev(self, dev):
+    def check_on_dev(self, dev, i):
         """ predict tags from dev and check the loss and accuracy on it """
         total_loss = good = bad = 0.0
         t = time()
@@ -147,10 +147,10 @@ class BiLstmModel(object):
                     bad += 1
             loss = dy.esum(errs)
             total_loss += loss.value()
-        print 'loss:', (total_loss / dev_size), \
+        print str(i + 1) + ': ' + 'loss:', (total_loss / dev_size), \
             'acc:', (good / (good + bad)), \
             'time:', time() - t
-        return total_loss, good / (good + bad)
+        return good / (good + bad)
 
 
 if __name__ == '__main__':
