@@ -36,8 +36,6 @@ class BiLstmModel(object):
         self.pW = self.model.add_parameters((out_dim, 2 * lstm_out_dim))
         self.pb = self.model.add_parameters(out_dim)
 
-        self.spec = [w2i, l2i, embed_dim, lstm_in_dim, lstm_out_dim, layers]
-
     def _bi_lstm(self, seq, builders):
         """ apply bi-lstm builders on the sequence """
         lstm_f = builders[0].initial_state().transduce(seq)
@@ -57,8 +55,10 @@ class BiLstmModel(object):
         return [W * item + b for item in lstm_out]  # outputs
 
     def train_on(self, train, dev, to_save=False, model_name=None):
+        """ if to_save set to True, user must specify the model_name """
         dev_res_file = open('dev_results.txt', 'w')
         dev_res_file.write('accuracy\n')
+        best_dev_acc = 0.0
 
         trainer = dy.AdamTrainer(self.model)
 
@@ -68,6 +68,7 @@ class BiLstmModel(object):
             total_loss = good = bad = 0.0
             t = time()
 
+            ignore_tag = utils.IGNORE_TAG  # O-tag of ner
             for i, (words, tags) in enumerate(train):
                 dy.renew_cg()
                 train_size += len(words)
@@ -80,6 +81,8 @@ class BiLstmModel(object):
                     # update accuracy
                     pred_tag = self.i2l[np.argmax(output.npvalue())]
                     if pred_tag == tag:
+                        if tag == ignore_tag:
+                            continue
                         good += 1
                     else:
                         bad += 1
@@ -92,6 +95,10 @@ class BiLstmModel(object):
                 if i % 500 == 499:  # check dev accuracy every 500 sentences
                     dev_acc = self.check_on_dev(dev, i)
                     dev_res_file.write(str(dev_acc) + '\n')
+                    if to_save and dev_acc > best_dev_acc:
+                        self.save_model(model_name)
+                        best_dev_acc = dev_acc
+                        print '\t\t***\tmodel saved\t***'
 
             print epoch, 'loss:', (total_loss / train_size), \
                 'acc:', (good / (good + bad)), \
@@ -107,6 +114,7 @@ class BiLstmModel(object):
         t = time()
         dev_size = 0
 
+        ignore_tag = utils.IGNORE_TAG  # O-tag of ner
         for words, tags in dev:
             dev_size += len(words)
             outputs = self(words)
@@ -117,6 +125,8 @@ class BiLstmModel(object):
 
                 pred_tag = self.i2l[np.argmax(output.npvalue())]
                 if pred_tag == tag:
+                    if tag == ignore_tag:
+                        continue
                     good += 1
                 else:
                     bad += 1
@@ -128,44 +138,15 @@ class BiLstmModel(object):
         return good / (good + bad)
 
     def save_model(self, name):
-        obj = {'model': self.model, 'w2i': self.w2i, 'l2i': self.l2i}
-        pickle.dump(obj, open('model_' + name, 'wb'))
+        obj = {'w2i': self.w2i, 'l2i': self.l2i}
+        pickle.dump(obj, open('model_' + name + '.params', 'wb'))
+        dy.save('model_' + name, [])
 
     @staticmethod
-    def load_model(filename):
-        reader = pickle.load(open('model_' + filename, 'rb'))
-        m = reader['model']
+    def load_model(filename, representor):
+        reader = pickle.load(open('model_' + filename + '.params', 'rb'))
+        m = dy.ParameterCollection()
+        dy.load('model_' + filename, m)
         w2i = reader['w2i']
         l2i = reader['l2i']
-        return BiLstmModel(m, w2i, l2i)
-
-
-def old():
-    save = True
-
-    t0 = time()
-    print 'start'
-
-    train_data_set = utils.make_data_set('../pos/train')
-    dev_data_set = utils.make_data_set('../pos/dev')
-    w_set, t_set = utils.extract_word_and_tag_sets_from(train_data_set)
-    w_set.add(UNK)
-    w_to_i = {w: i for i, w in enumerate(w_set)}
-    l_to_i = {l: i for i, l in enumerate(t_set)}
-
-    print 'time for loading and parsing the files:', time() - t0
-    t0 = time()
-
-    # pc = dy.ParameterCollection()
-    # net = BiLstmModel(pc, w_to_i, l_to_i)
-    # net.train_on(train_data_set, dev_data_set, to_save=save, model_name='pos_a')
-
-    print 'time to train:', time() - t0
-
-
-if __name__ == '__main__':
-    d = {'a': 1, 'b': 2}
-    pickle.dump(d, open('exp', 'wb'))
-
-    d2 = pickle.load(open('exp', 'rb'))
-    print d2
+        return BiLstmModel(m, representor, w2i, l2i)

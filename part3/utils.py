@@ -4,6 +4,8 @@ DEF_LSTM_IN = 32
 DEF_LSTM_OUT = 32
 DEF_LAYERS = 1
 
+IGNORE_TAG = 'O'
+
 
 def make_data_set(filename):
     """
