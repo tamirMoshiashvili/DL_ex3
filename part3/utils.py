@@ -1,3 +1,5 @@
+from time import time
+
 UNK = '_UNK_'
 DEF_EMB_DIM = 64
 DEF_LSTM_IN = 32
@@ -42,3 +44,14 @@ def extract_word_and_tag_sets_from(data_set):
             word_set.add(word)
             tag_set.add(tag)
     return word_set, tag_set
+
+
+def create_c2i(train):
+    t_c = time()
+    chars = set('__C' + UNK)
+    for sentence, _ in train:
+        for word in sentence:
+            for c in word:
+                chars.add(c)
+    print 'time for c2i:', time() - t_c
+    return {c: i for i, c in enumerate(chars)}

@@ -24,6 +24,11 @@ SAVE_FLAG = '-save'
 DEV_FLAG = '-dev-path'
 
 if __name__ == '__main__':
+    """
+        args:       repr train_file        model_file -dev-path dev_path        [-save]
+        example:    a    ../data/pos/train model_pos  -dev-path ../data/pos/dev -save
+    """
+
     t0 = time()
     print 'start'
 
@@ -46,8 +51,13 @@ if __name__ == '__main__':
     t0 = time()
 
     pc = dy.ParameterCollection()
-    args = (pc, w2i, utils.DEF_EMB_DIM)
+
+    if representation == 'a':
+        args = (pc, w2i, utils.DEF_EMB_DIM)
+    elif representation == 'b':
+        args = (pc, utils.create_c2i(train_data_set), utils.DEF_EMB_DIM, 2*utils.DEF_LSTM_IN, utils.DEF_LAYERS)
     representor = Representation.resolve_repr(representation, args)
+
     net = BiLstmModel(pc, representor, w2i, l2i)
     net.train_on(train_data_set, dev_data_set,
                  to_save=save_model, model_name=model_file_path + '_' + representation)

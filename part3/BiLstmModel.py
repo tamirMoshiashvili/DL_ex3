@@ -98,7 +98,6 @@ class BiLstmModel(object):
                     if to_save and dev_acc > best_dev_acc:
                         self.save_model(model_name)
                         best_dev_acc = dev_acc
-                        print '\t\t***\tmodel saved\t***'
 
             print epoch, 'loss:', (total_loss / train_size), \
                 'acc:', (good / (good + bad)), \
@@ -139,14 +138,19 @@ class BiLstmModel(object):
 
     def save_model(self, name):
         obj = {'w2i': self.w2i, 'l2i': self.l2i}
-        pickle.dump(obj, open('model_' + name + '.params', 'wb'))
-        dy.save('model_' + name, [])
+        pickle.dump(obj, open(name + '.params', 'wb'))
+        dy.save(name, [])
 
     @staticmethod
     def load_model(filename, representor):
-        reader = pickle.load(open('model_' + filename + '.params', 'rb'))
+        reader = pickle.load(open(filename + '.params', 'rb'))
         m = dy.ParameterCollection()
-        dy.load('model_' + filename, m)
+        dy.load(filename, m)
         w2i = reader['w2i']
         l2i = reader['l2i']
         return BiLstmModel(m, representor, w2i, l2i)
+
+
+if __name__ == '__main__':
+    tup = (1, 2, 3)
+    print tup + (4,)

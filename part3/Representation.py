@@ -50,12 +50,14 @@ class WordAndCharRepresentation(BaseRepresentation):
 def resolve_repr(representation, args):
     """
     :param representation: one of a, b, c, d
-    :param args: tuple of:
-            0 model
-            1 w2i
-            2 embed dim
-    :return:
+    :param args: tuple
+    :return: representor
     """
     if representation == 'a':
-        model, w2i, emb_dim = args[0], args[1], args[2]
+        model, w2i, emb_dim = args
         return WordRepresentation(w2i, model, emb_dim)
+    elif representation == 'b':
+        model, c2i, emb_dim, lstm_dim, layers = args
+        return CharLevelRepresentation(c2i, model, emb_dim, lstm_dim, layers)
+    else:
+        return None
