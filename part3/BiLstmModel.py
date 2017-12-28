@@ -2,55 +2,20 @@ from time import time
 
 import dynet as dy
 import numpy as np
+import utils
+import pickle
 
-UNK = '_UNK_'
-
-
-def make_data_set(filename):
-    """
-    :param filename: name of file to read from
-    :return: list of sentences, each sentence in it is a tuple of (words, tags), each is a list of strings
-    """
-    sentences = []
-    words, tags = [], []
-    with open(filename, 'r') as f:
-        for line in f:
-            line = line.split()
-            if not line:  # empty line, end of sentence
-                sentences.append((words, tags))
-                words, tags = [], []
-            else:  # add the data to the current sentence
-                word, tag = line
-                words.append(word)
-                tags.append(tag)
-        if words:  # in case that the file doesn't end with empty line
-            sentences.append((words, tags))
-        f.close()
-    return sentences
-
-
-def extract_word_and_tag_sets_from(data_set):
-    """
-    :param data_set: list of sentences, each sentence in it is a tuple of (words, tags),
-     each is a list of strings
-    :return: two-sets, first for words and the other is for tags
-    """
-    word_set, tag_set = set(), set()
-    for words, tags in data_set:
-        for word, tag in zip(words, tags):
-            word_set.add(word)
-            tag_set.add(tag)
-    return word_set, tag_set
+UNK = utils.UNK
 
 
 class BiLstmModel(object):
-    def __init__(self, w2i, l2i, embed_dim=64, lstm_in_dim=32, lstm_out_dim=32, layers=1):
+    def __init__(self, m, w2i, l2i, embed_dim=64, lstm_in_dim=32, lstm_out_dim=32, layers=1):
         self.w2i = w2i
         self.l2i = l2i
         self.i2l = {i: l for l, i in l2i.iteritems()}
 
         vocab_size, out_dim = len(w2i), len(l2i)
-        self.model = dy.Model()
+        self.model = m
         self.embed = self.model.add_lookup_parameters((vocab_size, embed_dim))
 
         # bi-lstm-in
@@ -65,6 +30,8 @@ class BiLstmModel(object):
         # linear layer
         self.pW = self.model.add_parameters((out_dim, 2 * lstm_out_dim))
         self.pb = self.model.add_parameters(out_dim)
+
+        self.spec = [w2i, l2i, embed_dim, lstm_in_dim, lstm_out_dim, layers]
 
     def _bi_lstm(self, seq, builders):
         """ apply bi-lstm builders on the sequence """
@@ -126,6 +93,9 @@ class BiLstmModel(object):
                 'time:', time() - t, '\n'
         dev_res_file.close()
 
+        if to_save:
+            self.save_model(model_name)
+
     def check_on_dev(self, dev, i):
         """ predict tags from dev and check the loss and accuracy on it """
         total_loss = good = bad = 0.0
@@ -152,16 +122,28 @@ class BiLstmModel(object):
             'time:', time() - t
         return good / (good + bad)
 
+    def save_model(self, name):
+        obj = {'model': self.model, 'w2i': self.w2i, 'l2i': self.l2i}
+        pickle.dump(obj, open('model_' + name, 'wb'))
 
-if __name__ == '__main__':
+    @staticmethod
+    def load_model(filename):
+        reader = pickle.load(open('model_' + filename, 'rb'))
+        m = reader['model']
+        w2i = reader['w2i']
+        l2i = reader['l2i']
+        return BiLstmModel(m, w2i, l2i)
+
+
+def old():
     save = True
 
     t0 = time()
     print 'start'
 
-    train_data_set = make_data_set('../pos/train')
-    dev_data_set = make_data_set('../pos/dev')
-    w_set, t_set = extract_word_and_tag_sets_from(train_data_set)
+    train_data_set = utils.make_data_set('../pos/train')
+    dev_data_set = utils.make_data_set('../pos/dev')
+    w_set, t_set = utils.extract_word_and_tag_sets_from(train_data_set)
     w_set.add(UNK)
     w_to_i = {w: i for i, w in enumerate(w_set)}
     l_to_i = {l: i for i, l in enumerate(t_set)}
@@ -169,7 +151,16 @@ if __name__ == '__main__':
     print 'time for loading and parsing the files:', time() - t0
     t0 = time()
 
-    net = BiLstmModel(w_to_i, l_to_i)
-    net.train_on(train_data_set, dev_data_set, to_save=save, model_name='model_pos_a')
+    pc = dy.ParameterCollection()
+    net = BiLstmModel(pc, w_to_i, l_to_i)
+    net.train_on(train_data_set, dev_data_set, to_save=save, model_name='pos_a')
 
     print 'time to train:', time() - t0
+
+
+if __name__ == '__main__':
+    d = {'a': 1, 'b': 2}
+    pickle.dump(d, open('exp', 'wb'))
+
+    d2 = pickle.load(open('exp', 'rb'))
+    print d2
