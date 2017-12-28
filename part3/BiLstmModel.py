@@ -6,17 +6,22 @@ import utils
 import pickle
 
 UNK = utils.UNK
+DEF_EMB_DIM = utils.DEF_EMB_DIM
+DEF_LSTM_IN = utils.DEF_LSTM_IN
+DEF_LSTM_OUT = utils.DEF_LSTM_OUT
+DEF_LAYERS = utils.DEF_LAYERS
 
 
 class BiLstmModel(object):
-    def __init__(self, m, w2i, l2i, embed_dim=64, lstm_in_dim=32, lstm_out_dim=32, layers=1):
+    def __init__(self, model, representor, w2i, l2i,
+                 embed_dim=DEF_EMB_DIM, lstm_in_dim=DEF_LSTM_IN, lstm_out_dim=DEF_LSTM_OUT, layers=DEF_LAYERS):
         self.w2i = w2i
         self.l2i = l2i
         self.i2l = {i: l for l, i in l2i.iteritems()}
 
         vocab_size, out_dim = len(w2i), len(l2i)
-        self.model = m
-        self.embed = self.model.add_lookup_parameters((vocab_size, embed_dim))
+        self.model = model
+        self.representor = representor
 
         # bi-lstm-in
         builder = dy.VanillaLSTMBuilder
@@ -42,7 +47,7 @@ class BiLstmModel(object):
     def __call__(self, seq):
         """ seq = (w1, ... , wi, ... , wn), wi is a word/string """
         seq = [wi if wi in self.w2i else UNK for wi in seq]  # check for unknown words
-        seq_as_xs = [dy.lookup(self.embed, self.w2i[wi]) for wi in seq]  # current representation is embed
+        seq_as_xs = self.representor.represent(seq)
 
         # apply bi-lstm twice
         lstm_in = self._bi_lstm(seq_as_xs, [self.lstm_in_f, self.lstm_in_b])
@@ -151,9 +156,9 @@ def old():
     print 'time for loading and parsing the files:', time() - t0
     t0 = time()
 
-    pc = dy.ParameterCollection()
-    net = BiLstmModel(pc, w_to_i, l_to_i)
-    net.train_on(train_data_set, dev_data_set, to_save=save, model_name='pos_a')
+    # pc = dy.ParameterCollection()
+    # net = BiLstmModel(pc, w_to_i, l_to_i)
+    # net.train_on(train_data_set, dev_data_set, to_save=save, model_name='pos_a')
 
     print 'time to train:', time() - t0
 

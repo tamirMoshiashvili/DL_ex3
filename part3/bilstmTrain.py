@@ -15,12 +15,14 @@ import dynet as dy
  -      add '-save' to save the model after training
  -  dev flag:
  -      add '-dev-path param' where param is the path to the dev file
+ a ../pos/train pos_a -pos -save -dev-path ../pos/dev
 """
 from time import time
 
 import sys
 import utils
 from part3.BiLstmModel import BiLstmModel
+import Representation
 
 POS_FLAG = '-pos'
 NER_FLAG = '-ner'
@@ -53,14 +55,16 @@ if __name__ == '__main__':
     dev_data_set = utils.make_data_set(dev_file_path)
     w_set, t_set = utils.extract_word_and_tag_sets_from(train_data_set)
     w_set.add(utils.UNK)
-    w_to_i = {w: i for i, w in enumerate(w_set)}
-    l_to_i = {l: i for i, l in enumerate(t_set)}
+    w2i = {w: i for i, w in enumerate(w_set)}
+    l2i = {l: i for i, l in enumerate(t_set)}
 
     print 'time for loading and parsing the files:', time() - t0
     t0 = time()
 
     pc = dy.ParameterCollection()
-    net = BiLstmModel(pc, w_to_i, l_to_i)
+    args = (pc, w2i, utils.DEF_EMB_DIM)
+    representor = Representation.resolve_repr(representation, args)
+    net = BiLstmModel(pc, representor, w2i, l2i)
     net.train_on(train_data_set, dev_data_set, to_save=save_model, model_name=mode + '_' + representation)
 
     print 'time to train:', time() - t0

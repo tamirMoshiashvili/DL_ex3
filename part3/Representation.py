@@ -47,6 +47,15 @@ class WordAndCharRepresentation(BaseRepresentation):
         pass
 
 
-class RepresentationResolver(object):
-    def __init__(self):
-        pass
+def resolve_repr(representation, args):
+    """
+    :param representation: one of a, b, c, d
+    :param args: tuple of:
+            0 model
+            1 w2i
+            2 embed dim
+    :return:
+    """
+    if representation == 'a':
+        model, w2i, emb_dim = args[0], args[1], args[2]
+        return WordRepresentation(w2i, model, emb_dim)
