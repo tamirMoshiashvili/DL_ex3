@@ -58,11 +58,11 @@ if __name__ == '__main__':
     elif representation == 'b':
         del w2i
         c2i = utils.create_c2i(train_data_set)
-        args = {S_MODEL: pc, S_C2I: w2i, S_EMB_DIM: utils.DEF_EMB_DIM,
+        args = {S_MODEL: pc, S_C2I: c2i, S_EMB_DIM: utils.DEF_EMB_DIM,
                 S_LSTM_DIM: 2 * utils.DEF_LSTM_IN, S_LAYERS: utils.DEF_LAYERS}
-    elif representation == 'c':  # TODO change args to dict
+    elif representation == 'c':
         utils.add_pref_and_suff(train_data_set, w2i)
-        args = (pc, w2i, utils.DEF_EMB_DIM)
+        args = {S_MODEL: pc, S_W2I: w2i, S_EMB_DIM: utils.DEF_EMB_DIM}
     representor = resolve_repr(representation, args)
 
     net = BiLstmModel(pc, representor, l2i)
