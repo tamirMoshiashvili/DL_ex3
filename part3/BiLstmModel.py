@@ -1,10 +1,10 @@
+import pickle
 from time import time
 
-import dynet as dy
-import gc
 import numpy as np
+
 import utils
-import pickle
+from part3.Representation import *
 
 UNK = utils.UNK
 DEF_EMB_DIM = utils.DEF_EMB_DIM
@@ -15,11 +15,11 @@ DEF_LAYERS = utils.DEF_LAYERS
 
 class BiLstmModel(object):
     def __init__(self, model, representor, l2i,
-                 embed_dim=DEF_EMB_DIM, lstm_in_dim=DEF_LSTM_IN, lstm_out_dim=DEF_LSTM_OUT, layers=DEF_LAYERS,
-                 c2i=None):
+                 embed_dim=DEF_EMB_DIM, lstm_in_dim=DEF_LSTM_IN, lstm_out_dim=DEF_LSTM_OUT, layers=DEF_LAYERS):
         self.l2i = l2i
         self.i2l = {i: l for l, i in l2i.iteritems()}
-        self.c2i = c2i
+
+        self.param_tuple = (embed_dim, lstm_in_dim, lstm_out_dim, layers)  # for saving and loading
 
         out_dim = len(l2i)
         self.model = model
@@ -141,18 +141,27 @@ class BiLstmModel(object):
         return good / (good + bad)
 
     def save_model(self, name):
-        obj = {'l2i': self.l2i, 'c2i': self.c2i}
+        self.model.save(name)  # save the model file
+
+        obj = {'repr': self.representor.spec, 'l2i': self.l2i, 'param_tuple': self.param_tuple}
         pickle.dump(obj, open(name + '.params', 'wb'))
-        dy.save(name, [])
 
     @staticmethod
-    def load_model(filename, representor):
+    def load_model(filename, representation):
+        filename += '_' + representation
         reader = pickle.load(open(filename + '.params', 'rb'))
-        m = dy.ParameterCollection()
-        dy.load(filename, m)
+        repr_spec = reader['repr']
         l2i = reader['l2i']
-        c2i = reader['c2i']
-        return BiLstmModel(m, representor, l2i, c2i=c2i)
+        param_tuple = reader['param_tuple']
+        m = dy.ParameterCollection()
+
+        repr_spec[S_MODEL] = m
+        representor = resolve_repr(representation, repr_spec)
+        emb_dim, lstm_in_dim, lstm_out_dim, layers = param_tuple
+        net = BiLstmModel(m, representor, l2i, emb_dim, lstm_in_dim, lstm_out_dim, layers)
+        m.populate(filename)
+
+        return net
 
 
 if __name__ == '__main__':

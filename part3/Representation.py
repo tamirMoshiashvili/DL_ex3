@@ -1,5 +1,12 @@
 import dynet as dy
 
+S_MODEL = 'model'
+S_W2I = 'w2i'
+S_EMB_DIM = 'emb_dim'
+S_C2I = 'c2i'
+S_LSTM_DIM = 'lstm_dim'
+S_LAYERS = 'layers'
+
 
 class BaseRepresentation(object):
     def represent(self, seq):
@@ -13,6 +20,8 @@ class WordRepresentation(BaseRepresentation):
 
         from part3 import utils
         self.unk = utils.UNK
+
+        self.spec = {S_W2I: w2i, S_EMB_DIM: emb_dim}
 
     def represent(self, seq):
         return [dy.lookup(self.embed, self.w2i[wi]) if wi in self.w2i
@@ -28,6 +37,8 @@ class CharLevelRepresentation(BaseRepresentation):
 
         from part3 import utils
         self.c_unk = utils.CUNK
+
+        self.spec = {S_C2I: c2i, S_EMB_DIM: emb_dim, S_LSTM_DIM: lstm_dim, S_LAYERS: layers}
 
     def represent(self, seq):
         output_vec = []
@@ -49,6 +60,7 @@ class SubWordRepresentation(WordRepresentation):
         self.suff_flag = utils.SUFF_FLAG
         self.pref_unk = utils.PREF_UNK
         self.suff_unk = utils.SUFF_UNK
+        # todo self.spec
 
     def represent(self, seq):
         word_r = super(SubWordRepresentation, self).represent(seq)
@@ -72,14 +84,15 @@ class WordAndCharRepresentation(BaseRepresentation):
 def resolve_repr(representation, args):
     """
     :param representation: one of a, b, c, d
-    :param args: tuple
+    :param args: dict
     :return: representor
     """
     if representation == 'a':
-        model, w2i, emb_dim = args
+        model, w2i, emb_dim = args[S_MODEL], args[S_W2I], args[S_EMB_DIM]
         return WordRepresentation(w2i, model, emb_dim)
     elif representation == 'b':
-        model, c2i, emb_dim, lstm_dim, layers = args
+        model, c2i, emb_dim, lstm_dim, layers = args[S_MODEL], args[S_C2I], \
+                                                args[S_EMB_DIM], args[S_LSTM_DIM], args[S_LAYERS]
         return CharLevelRepresentation(c2i, model, emb_dim, lstm_dim, layers)
     else:
         return None

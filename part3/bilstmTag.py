@@ -6,12 +6,14 @@
  - inputFile path to the input file, to predict on
  - [options]: TODO
 
- example: a ../pos/train pos_a -pos -save -dev-path ../pos/dev
+ example: a data_ner/repr_a/model_ner dummy
 """
 
 from time import time
 
 import sys
+
+from part3.BiLstmModel import BiLstmModel
 
 if __name__ == '__main__':
     t0 = time()
@@ -21,5 +23,7 @@ if __name__ == '__main__':
     representation = args[0]
     model_file_path = args[1]
     input_file_path = args[2]
+
+    net = BiLstmModel.load_model(model_file_path, representation)
 
     print 'time to run all:', time() - t0

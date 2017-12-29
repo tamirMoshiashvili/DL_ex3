@@ -18,7 +18,7 @@ from time import time
 
 import sys
 import utils
-import Representation
+from Representation import *
 from part3.BiLstmModel import BiLstmModel
 
 SAVE_FLAG = '-save'
@@ -53,19 +53,19 @@ if __name__ == '__main__':
 
     pc = dy.ParameterCollection()
 
-    c2i = None
     if representation == 'a':
-        args = (pc, w2i, utils.DEF_EMB_DIM)
+        args = {S_MODEL: pc, S_W2I: w2i, S_EMB_DIM: utils.DEF_EMB_DIM}
     elif representation == 'b':
         del w2i
         c2i = utils.create_c2i(train_data_set)
-        args = (pc, c2i, utils.DEF_EMB_DIM, 2 * utils.DEF_LSTM_IN, utils.DEF_LAYERS)
-    elif representation == 'c':
+        args = {S_MODEL: pc, S_C2I: w2i, S_EMB_DIM: utils.DEF_EMB_DIM,
+                S_LSTM_DIM: 2 * utils.DEF_LSTM_IN, S_LAYERS: utils.DEF_LAYERS}
+    elif representation == 'c':  # TODO change args to dict
         utils.add_pref_and_suff(train_data_set, w2i)
         args = (pc, w2i, utils.DEF_EMB_DIM)
-    representor = Representation.resolve_repr(representation, args)
+    representor = resolve_repr(representation, args)
 
-    net = BiLstmModel(pc, representor, l2i, c2i=c2i)
+    net = BiLstmModel(pc, representor, l2i)
     net.train_on(train_data_set, dev_data_set,
                  to_save=save_model, model_name=model_file_path + '_' + representation)
 
