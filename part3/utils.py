@@ -1,6 +1,11 @@
 from time import time
 
 UNK = '_UNK_'
+CUNK = '_C' + UNK
+PREF_FLAG = 'PREF-'
+SUFF_FLAG = 'SUFF-'
+PREF_UNK = '_PREF' + UNK
+SUFF_UNK = '_SUFF' + UNK
 DEF_EMB_DIM = 64
 DEF_LSTM_IN = 32
 DEF_LSTM_OUT = 32
@@ -48,10 +53,27 @@ def extract_word_and_tag_sets_from(data_set):
 
 def create_c2i(train):
     t_c = time()
-    chars = set('__C' + UNK)
+    chars = set(CUNK)
     for sentence, _ in train:
         for word in sentence:
             for c in word:
                 chars.add(c)
     print 'time for c2i:', time() - t_c
     return {c: i for i, c in enumerate(chars)}
+
+
+def add_pref_and_suff(data, w2i):
+    """ update w2i to contain the prefixes and suffixes of the words in data-sentences """
+    t_aff = time()
+
+    pref_set, suff_set = set(), set()
+    for sentence, _ in data:
+        for word in sentence:
+            pref_set.add(word[:3])
+            suff_set.add(word[-3:])
+    for pref in pref_set:
+        w2i[PREF_FLAG + pref] = len(w2i)
+    for suff in suff_set:
+        w2i[SUFF_FLAG + suff] = len(w2i)
+
+    print 'time for affixes:', time() - t_aff

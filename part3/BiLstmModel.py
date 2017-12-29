@@ -1,6 +1,7 @@
 from time import time
 
 import dynet as dy
+import gc
 import numpy as np
 import utils
 import pickle
@@ -13,13 +14,14 @@ DEF_LAYERS = utils.DEF_LAYERS
 
 
 class BiLstmModel(object):
-    def __init__(self, model, representor, w2i, l2i,
-                 embed_dim=DEF_EMB_DIM, lstm_in_dim=DEF_LSTM_IN, lstm_out_dim=DEF_LSTM_OUT, layers=DEF_LAYERS):
-        self.w2i = w2i
+    def __init__(self, model, representor, l2i,
+                 embed_dim=DEF_EMB_DIM, lstm_in_dim=DEF_LSTM_IN, lstm_out_dim=DEF_LSTM_OUT, layers=DEF_LAYERS,
+                 c2i=None):
         self.l2i = l2i
         self.i2l = {i: l for l, i in l2i.iteritems()}
+        self.c2i = c2i
 
-        vocab_size, out_dim = len(w2i), len(l2i)
+        out_dim = len(l2i)
         self.model = model
         self.representor = representor
 
@@ -44,7 +46,6 @@ class BiLstmModel(object):
 
     def __call__(self, seq):
         """ seq = (w1, ... , wi, ... , wn), wi is a word/string """
-        seq = [wi if wi in self.w2i else UNK for wi in seq]  # check for unknown words
         seq_as_xs = self.representor.represent(seq)
 
         # apply bi-lstm twice
@@ -114,11 +115,13 @@ class BiLstmModel(object):
         dev_size = 0
 
         ignore_tag = utils.IGNORE_TAG  # O-tag of ner
+        errs = []
         for words, tags in dev:
+            dy.renew_cg()
+
             dev_size += len(words)
             outputs = self(words)
 
-            errs = []
             for output, tag in zip(outputs, tags):
                 errs.append(dy.pickneglogsoftmax(output, self.l2i[tag]))
 
@@ -131,13 +134,14 @@ class BiLstmModel(object):
                     bad += 1
             loss = dy.esum(errs)
             total_loss += loss.value()
+            errs = []
         print str(i + 1) + ': ' + 'loss:', (total_loss / dev_size), \
             'acc:', (good / (good + bad)), \
             'time:', time() - t
         return good / (good + bad)
 
     def save_model(self, name):
-        obj = {'w2i': self.w2i, 'l2i': self.l2i}
+        obj = {'l2i': self.l2i, 'c2i': self.c2i}
         pickle.dump(obj, open(name + '.params', 'wb'))
         dy.save(name, [])
 
@@ -146,9 +150,9 @@ class BiLstmModel(object):
         reader = pickle.load(open(filename + '.params', 'rb'))
         m = dy.ParameterCollection()
         dy.load(filename, m)
-        w2i = reader['w2i']
         l2i = reader['l2i']
-        return BiLstmModel(m, representor, w2i, l2i)
+        c2i = reader['c2i']
+        return BiLstmModel(m, representor, l2i, c2i=c2i)
 
 
 if __name__ == '__main__':

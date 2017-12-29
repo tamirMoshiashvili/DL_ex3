@@ -11,14 +11,15 @@ import dynet as dy
  -      add '-save' to save the model after training
  -  dev flag:
  -      add '-dev-path param' where param is the path to the dev file
- a ../pos/train pos_a -pos -save -dev-path ../pos/dev
+
+ example: a ../pos/train pos_a -pos -save -dev-path ../pos/dev
 """
 from time import time
 
 import sys
 import utils
-from part3.BiLstmModel import BiLstmModel
 import Representation
+from part3.BiLstmModel import BiLstmModel
 
 SAVE_FLAG = '-save'
 DEV_FLAG = '-dev-path'
@@ -52,13 +53,19 @@ if __name__ == '__main__':
 
     pc = dy.ParameterCollection()
 
+    c2i = None
     if representation == 'a':
         args = (pc, w2i, utils.DEF_EMB_DIM)
     elif representation == 'b':
-        args = (pc, utils.create_c2i(train_data_set), utils.DEF_EMB_DIM, 2*utils.DEF_LSTM_IN, utils.DEF_LAYERS)
+        del w2i
+        c2i = utils.create_c2i(train_data_set)
+        args = (pc, c2i, utils.DEF_EMB_DIM, 2 * utils.DEF_LSTM_IN, utils.DEF_LAYERS)
+    elif representation == 'c':
+        utils.add_pref_and_suff(train_data_set, w2i)
+        args = (pc, w2i, utils.DEF_EMB_DIM)
     representor = Representation.resolve_repr(representation, args)
 
-    net = BiLstmModel(pc, representor, w2i, l2i)
+    net = BiLstmModel(pc, representor, l2i, c2i=c2i)
     net.train_on(train_data_set, dev_data_set,
                  to_save=save_model, model_name=model_file_path + '_' + representation)
 
