@@ -6,7 +6,6 @@ import numpy as np
 import utils
 from part3.Representation import *
 
-UNK = utils.UNK
 DEF_EMB_DIM = utils.DEF_EMB_DIM
 DEF_LSTM_IN = utils.DEF_LSTM_IN
 DEF_LSTM_OUT = utils.DEF_LSTM_OUT

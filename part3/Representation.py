@@ -109,5 +109,10 @@ def resolve_repr(representation, args):
     elif representation == 'c':
         model, w2i, emb_dim = args[S_MODEL], args[S_W2I], args[S_EMB_DIM]
         return SubWordRepresentation(w2i, model, emb_dim)
+    elif representation == 'd':
+        model, w2i, word_emb_dim, c2i = args[S_MODEL], args[S_W2I], args[S_W_EMB_DIM], args[S_C2I]
+        char_emb_dim, lstm_dim, total_dim, layers = args[S_C_EMB_DIM], args[S_LSTM_DIM], args[S_TOTAL_DIM], args[
+            S_LAYERS]
+        return WordAndCharRepresentation(model, w2i, word_emb_dim, c2i, char_emb_dim, lstm_dim, total_dim, layers)
     else:
         return None

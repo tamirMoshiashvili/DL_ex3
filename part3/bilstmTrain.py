@@ -1,5 +1,3 @@
-import dynet as dy
-
 """
  NOTE - args in command line need to be the following:
  repr trainFile modelFile [options]
@@ -14,9 +12,9 @@ import dynet as dy
 
  example: a ../pos/train pos_a -pos -save -dev-path ../pos/dev
 """
+import sys
 from time import time
 
-import sys
 import utils
 from Representation import *
 from part3.BiLstmModel import BiLstmModel
@@ -63,6 +61,11 @@ if __name__ == '__main__':
     elif representation == 'c':
         utils.add_pref_and_suff(train_data_set, w2i)
         args = {S_MODEL: pc, S_W2I: w2i, S_EMB_DIM: utils.DEF_EMB_DIM}
+    elif representation == 'd':
+        c2i = utils.create_c2i(train_data_set)
+        args = {S_MODEL: pc, S_W2I: w2i, S_C2I: c2i, S_W_EMB_DIM: utils.DEF_W_EMB_DIM,
+                S_LSTM_DIM: 2 * utils.DEF_LSTM_IN, S_LAYERS: utils.DEF_LAYERS,
+                S_C_EMB_DIM: utils.DEF_C_EMB_DIM, S_TOTAL_DIM: utils.DEF_TOTAL_DIM}
     representor = resolve_repr(representation, args)
 
     net = BiLstmModel(pc, representor, l2i)

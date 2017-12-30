@@ -2,10 +2,14 @@ from time import time
 
 UNK = '_UNK_'
 CUNK = '_C' + UNK
-PREF_FLAG = 'PREF-'
-SUFF_FLAG = 'SUFF-'
-PREF_UNK = '_PREF' + UNK
-SUFF_UNK = '_SUFF' + UNK
+PREF_FLAG = '_PREF_'
+SUFF_FLAG = '_SUFF_'
+PREF_UNK = PREF_FLAG + UNK
+SUFF_UNK = SUFF_FLAG + UNK
+
+DEF_W_EMB_DIM = 64
+DEF_C_EMB_DIM = 64
+DEF_TOTAL_DIM = 64
 DEF_EMB_DIM = 64
 DEF_LSTM_IN = 32
 DEF_LSTM_OUT = 32
@@ -71,8 +75,12 @@ def add_pref_and_suff(data, w2i):
         for word in sentence:
             pref_set.add(word[:3])
             suff_set.add(word[-3:])
+    # prefix
+    w2i[PREF_UNK] = len(w2i)
     for pref in pref_set:
         w2i[PREF_FLAG + pref] = len(w2i)
+    # suffix
+    w2i[SUFF_UNK] = len(w2i)
     for suff in suff_set:
         w2i[SUFF_FLAG + suff] = len(w2i)
 
