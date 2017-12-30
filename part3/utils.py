@@ -98,7 +98,7 @@ def test_data_set(filename):
         for line in f:
             line = line.split()
             if line:
-                sentence.append(line)
+                sentence.append(line[0])
             else:   # empty line, end of sentence
                 sentences.append(sentence)
                 sentence = []

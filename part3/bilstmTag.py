@@ -25,7 +25,7 @@ if __name__ == '__main__':
     representation = args[0]
     model_file_path = args[1]
     input_file_path = args[2]
-    output_file_path = args[4]
+    output_file_path = args[3]
 
     net = BiLstmModel.load_model(model_file_path, representation)
     test = utils.test_data_set(input_file_path)
