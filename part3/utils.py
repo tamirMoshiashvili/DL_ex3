@@ -57,7 +57,8 @@ def extract_word_and_tag_sets_from(data_set):
 
 def create_c2i(train):
     t_c = time()
-    chars = set(CUNK)
+    chars = set()
+    chars.add(CUNK)
     for sentence, _ in train:
         for word in sentence:
             for c in word:

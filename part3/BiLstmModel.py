@@ -147,7 +147,7 @@ class BiLstmModel(object):
 
     @staticmethod
     def load_model(filename, representation):
-        filename += '_' + representation
+        # filename += '_' + representation
         reader = pickle.load(open(filename + '.params', 'rb'))
         repr_spec = reader['repr']
         l2i = reader['l2i']

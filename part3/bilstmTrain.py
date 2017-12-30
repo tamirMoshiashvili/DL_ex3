@@ -10,7 +10,7 @@
  -  dev flag:
  -      add '-dev-path param' where param is the path to the dev file
 
- example: a ../pos/train pos_a -pos -save -dev-path ../pos/dev
+ example: a ../pos/train pos_a -save -dev-path ../pos/dev
 """
 import sys
 from time import time
@@ -70,6 +70,6 @@ if __name__ == '__main__':
 
     net = BiLstmModel(pc, representor, l2i)
     net.train_on(train_data_set, dev_data_set,
-                 to_save=save_model, model_name=model_file_path + '_' + representation)
+                 to_save=save_model, model_name=model_file_path)
 
     print 'time to train:', time() - t0
