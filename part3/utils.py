@@ -85,3 +85,21 @@ def add_pref_and_suff(data, w2i):
         w2i[SUFF_FLAG + suff] = len(w2i)
 
     print 'time for affixes:', time() - t_aff
+
+
+def test_data_set(filename):
+    """
+    :param filename: name of test file, each line is a single word, end of line is end of sentence.
+    :return: list of sentences, each sentence is a list of words.
+    """
+    sentences = []
+    with open(filename, 'r') as f:
+        sentence = []
+        for line in f:
+            line = line.split()
+            if line:
+                sentence.append(line)
+            else:   # empty line, end of sentence
+                sentences.append(sentence)
+                sentence = []
+    return sentences

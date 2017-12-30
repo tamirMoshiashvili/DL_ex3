@@ -162,6 +162,23 @@ class BiLstmModel(object):
 
         return net
 
+    def test_on(self, test, output_file_path):
+        t_test = time()
+        output_file = open(output_file_path, 'w')
+
+        for sentence in test:
+            dy.renew_cg()
+
+            outputs = self(sentence)
+            predicted_tags = [self.i2l[np.argmax(output.npvalue())] for output in outputs]
+
+            for w, t in zip(sentence, predicted_tags):
+                output_file.write(w + ' ' + t + '\n')
+            output_file.write('\n')  # end of sentence
+
+        output_file.close()
+        print 'time for blind test:', time() - t_test
+
 
 if __name__ == '__main__':
     tup = (1, 2, 3)
